@@ -1,9 +1,5 @@
-import strawberry
+from graphql import GraphQLError
 
 
-@strawberry.type
-class DatasetError:
-    title: str
-    description: str
-
-
+class DatasetError(Exception):
+    ...

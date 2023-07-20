@@ -1,4 +1,4 @@
-from typing import List, Optional, TypeVar, Any
+from typing import List, Any
 
 import strawberry
 from sqlalchemy import Table, Column, Integer, String, ForeignKey

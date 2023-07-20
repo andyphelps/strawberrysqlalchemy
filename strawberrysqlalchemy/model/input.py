@@ -14,7 +14,7 @@ class DatasetInput:
 
 
 @strawberry.input
-class PageInfo:
+class PageInfoInput:
     page_size: int
     page: int
 

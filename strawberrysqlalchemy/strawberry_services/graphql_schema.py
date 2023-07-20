@@ -1,11 +1,13 @@
+from typing import List
+
 import strawberry
 from strawberry import Schema
 
-from strawberrysqlalchemy.strawberry_services.database_session_extension import DatabaseSessionExtension
+from strawberrysqlalchemy.model.entity import Dataset
+from strawberrysqlalchemy.strawberry_services.extensions.database_session import DatabaseSessionExtension
+from strawberrysqlalchemy.strawberry_services.extensions.error_handler import ErrorHandlerExtension
 from strawberrysqlalchemy.strawberry_services.resolvers import (
-    DatasetsResponse,
     get_datasets,
-    DatasetResponse,
     add_dataset,
     add_datafile_to_dataset,
 )
@@ -13,13 +15,17 @@ from strawberrysqlalchemy.strawberry_services.resolvers import (
 
 @strawberry.type
 class Query:
-    get_datasets: DatasetsResponse = get_datasets
+    get_datasets: List[Dataset] = get_datasets
 
 
 @strawberry.type
 class Mutation:
-    add_dataset: DatasetResponse = add_dataset
-    add_datafile_to_dataset: DatasetResponse = add_datafile_to_dataset
+    add_dataset: Dataset = add_dataset
+    add_datafile_to_dataset: Dataset = add_datafile_to_dataset
 
 
-schema: Schema = Schema(query=Query, mutation=Mutation, extensions=[DatabaseSessionExtension])
+schema: Schema = Schema(
+    query=Query,
+    mutation=Mutation,
+    extensions=[DatabaseSessionExtension, ErrorHandlerExtension]
+)

@@ -18,23 +18,16 @@ See the model/entity.py for details
 ### Example GraphQL Queries and Mutations
 #### List all Datasets
 ```
-{
+query MyQuery {
   getDatasets {
-    __typename
-    ... on Datasets {
-      datasets {
-        id
-        name
-        retrievalUri
-        datafiles {
-          id
-          filename
-        }
-      }
-    }
-    ... on DatasetError {
-      title
-      description
+    name
+    retrievalUri
+    id
+    datafiles {
+      datasetId
+      filename
+      id
+      uri
     }
   }
 }
@@ -42,38 +35,20 @@ See the model/entity.py for details
 
 #### Add a Dataset
 ```
-mutation {
-  addDataset(datasetInput: {name: "dataset", retrievalUri: "uri"}) {
-    __typename
-    ... on Dataset {
-      id
-    }
-    ... on DatasetError {
-      title
-      description
-    }
+mutation MyMutation {
+  addDataset(datasetInput: {name: "ds1", retrievalUri: "u1"}) {
+    id
   }
 }
 ```
 
 #### Add a Datafile to an existing Dataset
 ```
-mutation {
-  addDatafileToDataset(
-    datasetId: 3
-    datafileInput: {filename: "datafile 1.1", uri: "uri 1.1"}
-  ) {
-    __typename
-    ... on Dataset {
+mmutation MyMutation {
+  addDatafileToDataset(datafileInput: {filename: "fn", uri: "u"}, datasetId: 1) {
+    id
+    datafiles {
       id
-      datafiles {
-        id
-        datasetId
-      }
-    }
-    ... on DatasetError {
-      title
-      description
     }
   }
 }

@@ -1,10 +1,12 @@
-from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import Session
+from typing import cast
+
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session, registry
 from strawberry.extensions import SchemaExtension
 from strawberry.types import ExecutionContext
 from strawberry.utils.await_maybe import AsyncIteratorOrIterator
 
-from strawberrysqlalchemy.model.entity import reg
+reg = registry()
 
 
 class DatabaseSessionExtension(SchemaExtension):
@@ -12,7 +14,10 @@ class DatabaseSessionExtension(SchemaExtension):
 
     def __init__(self, *, execution_context: ExecutionContext):
         super().__init__(execution_context=execution_context)
-        self.engine = create_engine("sqlite:///sqlite.db", echo=True)
+        # if not hasattr(self, "engine"):
+        #     raise ConnectionError("Cannot use DatabaseSessionExtension outside of StrawchemySchema")
+
+        self.engine = cast("strawberrysqlalchemy.strawchemy.StrawchemySchema", execution_context.schema).engine
         reg.metadata.create_all(self.engine)
 
     def on_operation(self) -> AsyncIteratorOrIterator[None]:

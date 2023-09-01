@@ -46,7 +46,7 @@ class TestStrawchemySchema:
     def test_when_simple_model_then_table_created_correctly(self, db: Engine) -> None:
         schema = StrawchemySchema(queriable_types=[SimpleModel], engine=db)
 
-        with schema.engine.connect() as connection:
+        with schema.__engine.connect() as connection:
             result: CursorResult = connection.execute(
                 text("pragma table_info(simple_model)")
             )

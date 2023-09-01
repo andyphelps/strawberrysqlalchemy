@@ -1,19 +1,12 @@
-from typing import List, cast
-
 import uvicorn
 from fastapi import FastAPI
-from sqlalchemy import create_engine
 from strawberry.fastapi import GraphQLRouter
-from strawberry.schema import BaseSchema
 
-from strawberrysqlalchemy.model.entities import Dataset, Datafile
-from strawberrysqlalchemy.strawchemy import StrawchemySchema
+from strawberrysqlalchemy.strawchemy.strawchemy_manager import StrawchemyManager
 
-engine = create_engine("sqlite://", echo=True)
+strawchemy_manager = StrawchemyManager(engine="sqlite:///", model_package_name="strawberrysqlalchemy.model")
 
-graphql_app: GraphQLRouter = GraphQLRouter(cast(BaseSchema, StrawchemySchema(queriable_types={Dataset, Datafile},
-                                                                             mutable_types={Dataset, Datafile},
-                                                                             engine=engine)))
+graphql_app: GraphQLRouter = GraphQLRouter(schema=strawchemy_manager.schema)
 
 app: FastAPI = FastAPI()
 app.include_router(graphql_app, prefix="/graphql")

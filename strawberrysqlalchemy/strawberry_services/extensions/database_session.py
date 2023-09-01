@@ -17,7 +17,7 @@ class DatabaseSessionExtension(SchemaExtension):
         # if not hasattr(self, "engine"):
         #     raise ConnectionError("Cannot use DatabaseSessionExtension outside of StrawchemySchema")
 
-        self.engine = cast("strawberrysqlalchemy.strawchemy.StrawchemySchema", execution_context.schema).engine
+        self.engine = cast("strawberrysqlalchemy.strawchemy.StrawchemySchema", execution_context.schema).__engine
         reg.metadata.create_all(self.engine)
 
     def on_operation(self) -> AsyncIteratorOrIterator[None]:

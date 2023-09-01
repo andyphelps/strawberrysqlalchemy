@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import List
 
 
@@ -9,8 +10,14 @@ class Datafile:
 
 
 @dataclass
+class Crs:
+    id: int
+    name: str
+
+
+@dataclass
 class Dataset:
     id: int
     name: str
     datafiles: List[Datafile]
-    main_datafile: Datafile
+    crs: Crs

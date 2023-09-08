@@ -1,3 +1,2 @@
-
 class DatasetError(Exception):
     pass

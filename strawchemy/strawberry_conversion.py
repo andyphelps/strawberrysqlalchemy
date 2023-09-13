@@ -4,21 +4,12 @@ import strawberry
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from strawberry.field import StrawberryField
-from strawberry.type import StrawberryList, StrawberryOptional
+from strawberry.type import StrawberryList, StrawberryOptional, get_object_definition
 from toolz import curry
 
 T = TypeVar("T")
 U = TypeVar("U")
 V = TypeVar("V")
-
-
-def create_strawberry_types(model_dataclasses: List[Type]) -> None:
-    for type_ in model_dataclasses:
-        strawberry.type(type_)
-        id_field = next(field
-                        for field in strawberry.object_type.get_object_definition(type_).fields
-                        if field.python_name == "id")
-        id_field.type = strawberry.Private[id_field.type]
 
 
 def __lookup_items_with_ids(obj: T, session: Session) -> None:
@@ -60,7 +51,7 @@ def make_object(type_: T, input_: U, session: Session) -> T:
     return obj
 
 
-def merge_lists(existing: List[T], update: List[U], session: Session) -> None:
+def __merge_lists(existing: List[T], update: List[U], session: Session) -> None:
     for item in update:
         if item.id:
             existing_item = next(x for x in existing if x.id == item.id)
@@ -90,7 +81,7 @@ def update_object(input_: U, object_to_update: T, session: Session) -> T:
         if strawberry.object_type.get_object_definition(input_value):
             setattr(object_to_update, field.python_name, update_object(input_value, original_value, session))
         elif type(field_type) == StrawberryList:
-            merge_lists(original_value, input_value, session)
+            __merge_lists(original_value, input_value, session)
         else:
             setattr(object_to_update, field.python_name, input_value)
 
@@ -98,6 +89,11 @@ def update_object(input_: U, object_to_update: T, session: Session) -> T:
 
 
 def recursively_create_strawberry_create_types(type_: Type) -> None:
+    if type(type_) in (StrawberryList, StrawberryOptional):
+        recursively_create_strawberry_create_types(type_.of_type)
+
+        return
+
     if hasattr(type_, "__strawchemy_create_type__"):
         return
 
@@ -111,9 +107,19 @@ def recursively_create_strawberry_create_types(type_: Type) -> None:
     ]
 
     for field in fields:
-        if type(field.type) == StrawberryList:
+        if (type(field.type) in (StrawberryOptional, StrawberryList)
+                and type(field.type.of_type) in (StrawberryOptional, StrawberryList)):
+            raise ValueError("Cannot support Optional[List[ or List[Optional at this time "
+                             f"on '{type_.__name__}.{field.python_name}'")
+        elif (type(field.type) in (StrawberryOptional, StrawberryList)
+              and strawberry.object_type.get_object_definition(field.type.of_type)):
             recursively_create_strawberry_create_types(field.type.of_type)
-            field.type = StrawberryList(of_type=field.type.of_type.__strawchemy_create_type__)
+            field.type = type(field.type)(of_type=field.type.of_type.__strawchemy_create_type__)
+
+            if type(field.type) == StrawberryOptional:
+                field.default_value = None
+            else:
+                field.default_factory = list
         elif strawberry.object_type.get_object_definition(field.type):
             recursively_create_strawberry_create_types(field.type)
             field.type = field.type.__strawchemy_create_type__
@@ -130,12 +136,8 @@ def recursively_create_strawberry_update_types(type_: Type) -> None:
     type_.__strawchemy_update_type__.update_object = update_object
     type_.__strawchemy_update_type__.__strawchemy_origin_type__ = type_
 
-    fields: Iterable[StrawberryField] = [
-        field
-        for field in strawberry.object_type.get_object_definition(type_.__strawchemy_update_type__).fields
-    ]
+    for field in get_object_definition(type_.__strawchemy_update_type__).fields:
 
-    for field in fields:
         if type(field.type) == StrawberryList:
             recursively_create_strawberry_update_types(field.type.of_type)
             field.type = StrawberryOptional(
@@ -145,11 +147,14 @@ def recursively_create_strawberry_update_types(type_: Type) -> None:
                     )
                 )
             )
-            field.default_value = None
-        elif strawberry.object_type.get_object_definition(field.type):
+        elif type(field.type) == StrawberryOptional and get_object_definition(field.type.of_type):
+            recursively_create_strawberry_update_types(field.type.of_type)
+            field.type = StrawberryOptional(of_type=field.type.of_type.__strawchemy_update_type__)
+        elif type(field.type) != StrawberryOptional and get_object_definition(field.type):
             recursively_create_strawberry_update_types(field.type)
             field.type = StrawberryOptional(of_type=field.type.__strawchemy_update_type__)
-            field.default_value = None
         elif type(field.type) != StrawberryOptional:
             field.type = StrawberryOptional(of_type=field.type)
-            field.default_value = None
+
+        field.default_value = None
+    ...

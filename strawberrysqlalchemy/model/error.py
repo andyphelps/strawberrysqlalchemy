@@ -1,2 +1,0 @@
-class DatasetError(Exception):
-    pass

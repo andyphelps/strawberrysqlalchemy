@@ -1,19 +1,18 @@
-from typing import TypeVar, Optional, Type, get_origin, List, Any, Dict
+from typing import TypeVar, Optional, Type, get_origin, List
 
 import sqlalchemy
 import strawberry
 from sqlalchemy import create_engine, Engine, Select, select, Result
 from sqlalchemy.orm import Session
-from strawberry.type import StrawberryList
+from strawberry.type import get_object_definition
 from strawberry.types import Info
 from strawberry.types.fields.resolver import StrawberryResolver
 from strawberry.types.types import StrawberryObjectDefinition
 
-from strawberrysqlalchemy.strawberry_services.extensions.database_session import DatabaseSessionExtension
-from strawberrysqlalchemy.strawberry_services.extensions.error_handler import ErrorHandlerExtension
-from strawberrysqlalchemy.strawchemy.model_validation import validate_model_classes, ensure_nullable_ids
-from strawberrysqlalchemy.strawchemy.sqlalchemy_mapper import create_sqlalchemy_types, reg
-from strawberrysqlalchemy.strawchemy.strawberry_conversion import recursively_create_strawberry_create_types, \
+from strawchemy.extensions import ErrorHandlerExtension, DatabaseSessionExtension
+from strawchemy.model_validation import validate_model_classes
+from strawchemy.sqlalchemy_mapper import create_sqlalchemy_types, reg
+from strawchemy.strawberry_conversion import recursively_create_strawberry_create_types, \
     recursively_create_strawberry_update_types
 
 T = TypeVar("T")
@@ -39,7 +38,7 @@ class StrawchemyManager:
 
     @property
     def schema(self) -> strawberry.schema.BaseSchema:
-        for field in strawberry.object_type.get_object_definition(self.__query).fields:
+        for field in get_object_definition(self.__query).fields:
 
             if "fetchall" in field.python_name.lower():
                 def resolve_all(info: Info) -> field.type:
@@ -63,10 +62,12 @@ class StrawchemyManager:
             else:
                 raise ValueError("Query members must have FetchAll or FetchById in their names (type insensitive)")
 
-        for field in strawberry.object_type.get_object_definition(self.__mutation).fields if self.__mutation else []:
+        for field in get_object_definition(self.__mutation).fields if self.__mutation else []:
             recursively_create_strawberry_create_types(field.type)
+            recursively_create_strawberry_update_types(field.type)
 
             if field.python_name.lower().startswith("create"):
+
                 def mutate_create(input_: field.type.__strawchemy_create_type__, info: Info) -> field.type:
                     session: Session = info.context["session"]
                     obj = input_.make_object(session)
@@ -78,7 +79,6 @@ class StrawchemyManager:
                 field.base_resolver = StrawberryResolver(mutate_create)
 
             if field.python_name.lower().startswith("update"):
-                recursively_create_strawberry_update_types(field.type)
 
                 def mutate_update(input_: field.type.__strawchemy_update_type__, info: Info) -> field.type:
                     session: Session = info.context["session"]
@@ -106,7 +106,7 @@ class StrawchemyManager:
                     if not obj:
                         raise LookupError(f"Could not find {info.return_type.__name__} with id: '{id_}'")
 
-                    session.delete(obj) # TODO: Handle cascades?
+                    session.delete(obj)
                     session.commit()
 
                     return obj
@@ -116,7 +116,7 @@ class StrawchemyManager:
         schema: strawberry.Schema = strawberry.Schema(query=self.__query,
                                                       mutation=self.__mutation,
                                                       extensions=[ErrorHandlerExtension, DatabaseSessionExtension])
-        schema.__engine__ = self.__engine
+        schema.strawchemy_engine = self.__engine
 
         schema_types: List[Type] = [schema_type.definition.origin
                                     for schema_type in schema.schema_converter.type_map.values()
@@ -124,9 +124,8 @@ class StrawchemyManager:
                                     and schema_type.definition.origin not in (schema.query, schema.mutation)
                                     and not schema_type.definition.is_input]
 
-        create_sqlalchemy_types(schema_types)
         validate_model_classes(schema_types)
-        ensure_nullable_ids(schema_types)
+        create_sqlalchemy_types(schema_types)
 
         reg.metadata.drop_all(self.engine)
         reg.metadata.create_all(self.engine, checkfirst=False)

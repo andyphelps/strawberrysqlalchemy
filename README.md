@@ -1,55 +1,39 @@
-## An example project to explore the joining of SQLAlchemy and Strawberry GraphQL
+# Strawberry-SqlAlchemy
+A library to implement an opinionated, databased-backed, graphql service.
 
-The aim is to explore the possibilities of:
-* Using the same model definition for both SQLAlchemy's ORM and the Strawberry GraphQL Schema
-* Understand how to use GraphQL inputs consistently within the model
-* How to implement pagination
-* How to use efficient queries to avoid N+1 scenarios
-* How to handle errors and their returns via GraphQL
+## Example main.py
 
-### Model
-This implements a very simple model.  There is a Dataset which can contain zero to many Datafiles.  
-See the model/entity.py for details
+```python
+from typing import List, Optional
 
-### Running debug server
-* Create the poetry environment using your favourite shell/IDE
-* In the terminal run `poetry run python -m strawberrysqlalchemy.main` or run main.py from your IDE
+import strawberry
+import uvicorn
+from fastapi import FastAPI
+from strawberry.fastapi import GraphQLRouter
 
-### Example GraphQL Queries and Mutations
-#### List all Datasets
-```
-query MyQuery {
-  getDatasets {
-    name
-    retrievalUri
-    id
-    datafiles {
-      datasetId
-      filename
-      id
-      uri
-    }
-  }
-}
-```
+from model import Dataset
+from strawberrysqlalchemy.strawchemy_manager import StrawchemyManager
 
-#### Add a Dataset
-```
-mutation MyMutation {
-  addDataset(datasetInput: {name: "ds1", retrievalUri: "u1"}) {
-    id
-  }
-}
-```
 
-#### Add a Datafile to an existing Dataset
-```
-mmutation MyMutation {
-  addDatafileToDataset(datafileInput: {filename: "fn", uri: "u"}, datasetId: 1) {
-    id
-    datafiles {
-      id
-    }
-  }
-}
+@strawberry.type
+class Query:
+    FetchAllDatasets: List[Dataset]
+    FetchDatasetById: Optional[Dataset]
+
+
+@strawberry.type
+class Mutation:
+    CreateDataset: Dataset
+    UpdateDataset: Dataset
+    DeleteDataset: Dataset
+
+
+strawchemy_manager = StrawchemyManager(engine="sqlite:///sqlite.db", query=Query, mutation=Mutation)
+graphql_app: GraphQLRouter = GraphQLRouter(schema=strawchemy_manager.schema)
+
+app: FastAPI = FastAPI()
+app.include_router(graphql_app, prefix="/graphql")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```

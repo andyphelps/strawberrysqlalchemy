@@ -4,7 +4,9 @@ from graphql import GraphQLResolveInfo
 from strawberry.extensions import SchemaExtension
 from strawberry.utils.await_maybe import AwaitableOrValue
 
-from strawberrysqlalchemy.model.error import DatasetError
+
+class StrawchemyError(RuntimeError):
+    ...
 
 
 class ErrorHandlerExtension(SchemaExtension):
@@ -20,7 +22,7 @@ class ErrorHandlerExtension(SchemaExtension):
         try:
             response = _next(root, info, *args, **kwargs)
             return response
-        except DatasetError as dex:
+        except StrawchemyError as dex:
             raise dex
         except Exception as ex:
-            raise DatasetError("An unhandled error occurred")
+            raise StrawchemyError("An unhandled error occurred")

@@ -127,7 +127,7 @@ class StrawchemyManager:
         validate_model_classes(schema_types)
         create_sqlalchemy_types(schema_types)
 
-        reg.metadata.drop_all(self.engine)
+        # reg.metadata.drop_all(self.engine)
         reg.metadata.create_all(self.engine, checkfirst=False)
 
         return schema

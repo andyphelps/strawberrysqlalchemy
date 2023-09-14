@@ -22,7 +22,7 @@ class Mutation:
     DeleteDataset: Dataset
 
 
-strawchemy_manager = StrawchemyManager(engine="sqlite:///sqlite.db", query=Query, mutation=Mutation)
+strawchemy_manager = StrawchemyManager(engine="sqlite://", query=Query, mutation=Mutation)
 graphql_app: GraphQLRouter = GraphQLRouter(schema=strawchemy_manager.schema)
 
 app: FastAPI = FastAPI()

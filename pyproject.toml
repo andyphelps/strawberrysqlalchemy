@@ -6,10 +6,10 @@ authors = ["Andrew Phelps <andrew.m.phelps@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-strawberry-graphql = {version = "^0.194.4", extras = ["debug-server"]}
+python = "^3.10"
+strawberry-graphql = {version = "^0.206.0", extras = ["debug-server"]}
 sqlalchemy = "^2.0.18"
-fastapi = "^0.100.0"
+fastapi = "^0.103.1"
 toolz = "^0.12.0"
 
 

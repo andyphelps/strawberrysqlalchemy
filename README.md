@@ -11,8 +11,7 @@ import uvicorn
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 
-from model import Dataset
-from strawberrysqlalchemy.strawchemy_manager import StrawchemyManager
+from strawchemy.strawchemy_manager import StrawchemyManager
 
 
 @strawberry.type

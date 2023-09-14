@@ -1,9 +1,11 @@
 from datetime import datetime, date, time
-from typing import Dict
+from typing import Dict, Type, TypeVar
 
 from sqlalchemy import Integer, Float, String, Boolean, DateTime, Date, Time
 
-MAPPED_TYPES: Dict[type, type] = {
+T = TypeVar("T")
+
+MAPPED_TYPES: Dict[Type, Type[T]] = {
     int: Integer,
     float: Float,
     str: String,
